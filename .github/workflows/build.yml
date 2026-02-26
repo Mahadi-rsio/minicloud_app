@@ -1,4 +1,4 @@
-Name: React Build
+name: React Build
 
 on: 
   push:
@@ -18,7 +18,7 @@ jobs:
           node-version: 22
 
       - name: install deps
-        uses: npm install
+        run: npm install
 
       - name: build app
-        uses: npm run build
+        run: npm run build
