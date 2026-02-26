@@ -95,6 +95,7 @@ export function Login() {
             ) : (
                 <div className="space-y-4">
                     <p className="text-lg font-medium">Logged in as <strong>{userName}</strong></p>
+                    <pre>{accessToken}</pre>
                     <div className="flex gap-2">
                         <Button onClick={handleSignOut}>Log Out</Button>
                     </div>
