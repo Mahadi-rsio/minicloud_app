@@ -4,6 +4,7 @@ import NotFound from "./core/NotFound";
 import AppBar from "./core/Appbar";
 import Profile from "./core/Profile";
 import Project from "./core/project/index";
+import { Login } from "./core/Login";
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
                 <Route path="/dashboard" element={<><AppBar /><Dashboard /></>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/project" element={<><AppBar /><Project /></>} />
+                <Route path="/" element={<Login />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </div>
