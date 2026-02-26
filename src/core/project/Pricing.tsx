@@ -1,5 +1,3 @@
-
-
 import {
     Card,
     CardContent,
@@ -10,12 +8,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import {
     Server,
-    Cpu,
     MemoryStick,
-    Coins,
     Layers,
     Calculator,
     Zap,
@@ -56,16 +51,6 @@ const webPlans: Plans[] = [
     { id: "std", price: "1৳", costPerHour: 1, cpu: "1c", ram: "1GB" },
 ]
 
-const redisMonthlyPlans: Plans[] = [
-    { id: "nano", monthlyCost: 500, ram: "512MB" },
-    { id: "medium", monthlyCost: 1000, ram: "1.2GB" },
-    { id: "large", monthlyCost: 2250, ram: "3GB" }
-]
-
-const redisUsagePlans: Plans[] = [
-    { id: "pay_per_use", contPerRequest: 0.01, costPerMemory: "10 taka per 150MB storage(ram)" }
-]
-
 
 /* ---------------- Serverless / CDN Pricing ---------------- */
 
@@ -76,7 +61,6 @@ export default function PricingSection({
     instances,
     setInstances,
     selectedPlan,
-    setSelectedPlan,
     usage = 0,
     setUsage,
 }: PricingSectionProps) {
