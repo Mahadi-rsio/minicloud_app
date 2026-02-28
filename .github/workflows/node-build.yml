@@ -1,17 +1,35 @@
-# managed-by: probot-bot"
-name: Probot Managed Build
-on: [deployment]
+# .github/workflows/deploy.yml
+name: Build React App
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: false
+        default: 'staging'
+
 jobs:
   build:
+    name: Build React App
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      # Checkout the code
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Node
+
+      # Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install & Test
-        run: |
-          npm install
+          node-version: 20
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build the React app
+      - name: Build
+        run: npm run build
 
