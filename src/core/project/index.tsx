@@ -117,6 +117,54 @@ export default function CreateAndDeploy() {
                     />
                 </>
             )}
+
+
+            {(selectedService === 'static') && (
+                <>
+                    <RepositorySection
+                        gitUrl={gitUrl}
+                        setGitUrl={setGitUrl}
+                        selectedRepo={selectedRepo}
+                        setSelectedRepo={setSelectedRepo}
+                    />
+
+                    <ConfigSection
+                        appName={state.name}
+                        setAppName={setAppName}
+                        region={region}
+                        setRegion={setRegion}
+                        runtime={runtime}
+                        setRuntime={setRuntime}
+                        buildCommand={buildCommand}
+                        setBuildCommand={setBuildCommand}
+                        startCommand={startCommand}
+                        setStartCommand={setStartCommand}
+                        outputDir={outputDir}
+                        setOutputDir={setOutputDir}
+                    />
+
+
+                    <EnvVarsSection
+                        envVars={envVars}
+                        setEnvVars={setEnvVars}
+                    />
+
+                    <PricingSection
+                        serviceType={selectedService}
+                        instances={instances}
+                        setInstances={setInstances}
+                        selectedPlan={selectedPlan || ""}
+                        setSelectedPlan={setSelectedPlan}
+                    />
+
+                    <DeployActions
+                        selectedService={selectedService}
+                        selectedRepo={selectedRepo}
+                        appName={appName}
+                        selectedPlan={selectedPlan}
+                    />
+                </>
+            )}
         </div>
     )
 }

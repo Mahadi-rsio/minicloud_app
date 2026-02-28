@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
     Card,
     CardContent,
@@ -17,12 +17,11 @@ import {
     Link,
     FolderGit2,
     GitBranch,
-    Server,
     Loader2,
-    X,
     Check,
     Globe,
     Lock,
+    GitCommitIcon,
 } from "lucide-react"
 import {
     Select,
@@ -32,7 +31,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { toast } from "sonner"
+import { useNavigate } from "react-router-dom"
 
+import { listRepos, type GitHubRepository } from "@/lib/github_type"
+import { getAccessToken } from "@/lib/authClient"
+import { useGithubCommits } from "@/lib/github_commit"
+
+/* =========================
+   Types
+========================= */
 type RepositorySectionProps = {
     gitUrl: string
     setGitUrl: (url: string) => void
@@ -40,224 +48,269 @@ type RepositorySectionProps = {
     setSelectedRepo: (repo?: string) => void
 }
 
-const fakeRepos = [
-    {
-        id: "repo-1",
-        name: "livo-mo/hello-world",
-        private: false,
-        branch: ["master", "main", "dev"],
-    },
-    {
-        id: "repo-2",
-        name: "livo-mo/blog-starter",
-        private: true,
-        branch: ["main", "deploy", "community"],
-    },
-    {
-        id: "repo-3",
-        name: "livo-mo/serverless-fn",
-        private: false,
-        branch: ["dev"],
-    },
-]
+type GitHubBranch = {
+    name: string
+    protected: boolean
+}
 
-function SelectBranch({
+/* =========================
+   Helpers
+========================= */
+const formatRepoName = (name: string) =>
+    name.length > 20 ? `${name.slice(0, 20)}...` : name
+
+async function fetchBranches(
+    owner: string,
+    repo: string,
+    token: string
+): Promise<GitHubBranch[]> {
+    const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/branches`,
+        {
+            headers: {
+                Accept: "application/vnd.github+json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!res.ok) throw new Error("Failed to fetch branches")
+    return res.json()
+}
+
+/* =========================
+   Branch Select
+========================= */
+function BranchSelect({
     branchList,
     value,
     onChange,
 }: {
     branchList: string[]
     value: string
-    onChange: (val: string) => void
+    onChange: (v: string) => void
 }) {
     return (
-        <div className="mt-2">
-            <Select value={value} onValueChange={onChange}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                    <SelectGroup>
-                        {branchList.map((branch) => (
-                            <SelectItem key={branch} value={branch}>
-                                {branch}
-                            </SelectItem>
-                        ))}
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
-        </div>
+        <Select value={value} onValueChange={onChange}>
+            <SelectTrigger>
+                <SelectValue placeholder="Select branch" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectGroup>
+                    {branchList.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                            {branch}
+                        </SelectItem>
+                    ))}
+                </SelectGroup>
+            </SelectContent>
+        </Select>
     )
 }
 
+/* =========================
+   Main Component
+========================= */
 export default function RepositorySection({
     gitUrl,
     setGitUrl,
     selectedRepo,
     setSelectedRepo,
 }: RepositorySectionProps) {
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [branch, setBranch] = useState("")
+    const navigate = useNavigate()
 
+    const [accessToken, setAccessToken] = useState("")
+    const [repositories, setRepositories] = useState<GitHubRepository[]>([])
+    const [branch, setBranch] = useState("")
+    const [branchList, setBranchList] = useState<string[]>([])
+    const [loading, setLoading] = useState(false)
+    const [branchLoading, setBranchLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    console.log(error);
+
+
+    /* =========================
+       Auth token
+    ========================= */
+    useEffect(() => {
+        async function loadToken() {
+            const { data, error } = await getAccessToken({
+                providerId: "github",
+            })
+
+            if (error || !data?.accessToken) {
+                toast.error("GitHub login required")
+                navigate("/")
+                return
+            }
+
+            setAccessToken(data.accessToken)
+        }
+
+        loadToken()
+    }, [navigate])
+
+    /* =========================
+       Fetch repos
+    ========================= */
+    useEffect(() => {
+        if (!accessToken) return
+
+        async function loadRepos() {
+            setLoading(true)
+            try {
+                const repos = await listRepos(accessToken)
+                setRepositories(repos)
+            } catch {
+                setError("Failed to load repositories")
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        loadRepos()
+    }, [accessToken])
+
+    /* =========================
+       Selected repo data
+    ========================= */
+    const selectedRepoData = useMemo(
+        () => repositories.find((r) => r.full_name === selectedRepo),
+        [repositories, selectedRepo]
+    )
+
+    const owner = selectedRepoData?.full_name.split("/")[0] ?? ""
+    const repo = selectedRepoData?.full_name.split("/")[1] ?? ""
+
+    /* =========================
+       Fetch branches
+    ========================= */
+    useEffect(() => {
+        if (!owner || !repo || !accessToken) return
+
+        async function loadBranches() {
+            setBranchLoading(true)
+            try {
+                const branches = await fetchBranches(owner, repo, accessToken)
+                const names = branches.map((b) => b.name)
+
+                setBranchList(names)
+                setBranch(
+                    names.includes(selectedRepoData!.default_branch)
+                        ? selectedRepoData!.default_branch
+                        : names[0]
+                )
+            } catch {
+                toast.error("Failed to load branches")
+            } finally {
+                setBranchLoading(false)
+            }
+        }
+
+        loadBranches()
+    }, [owner, repo, accessToken, selectedRepoData])
+
+    /* =========================
+       Commits Hook (CORRECT)
+    ========================= */
+    const {
+        commits,
+        loading: commitsLoading,
+        error: commitsError,
+    } = useGithubCommits({
+        owner,
+        repo,
+        branch,
+        perPage: 2,
+        token: accessToken,
+    })
+
+    /* =========================
+       URL Import
+    ========================= */
     const extractRepoName = (url: string) => {
         const match = url.match(/github\.com\/([^\/]+\/[^\/]+)(\.git)?/)
         return match ? match[1] : null
     }
 
     const handleImportFromUrl = () => {
-        setError(null)
-        if (!gitUrl) return
-
         const repoName = extractRepoName(gitUrl)
         if (!repoName) {
-            setError("Invalid GitHub URL")
+            setError("Invalid GitHub repository URL")
             return
         }
-
-        setLoading(true)
-
-        setTimeout(() => {
-            setSelectedRepo(repoName)
-            setLoading(false)
-        }, 800)
+        setSelectedRepo(repoName)
     }
-
-    const clearSelection = () => {
-        setSelectedRepo(undefined)
-        setGitUrl("")
-        setBranch("")
-        setError(null)
-    }
-
-    // 🔥 Get selected repo object
-    const selectedRepoData = fakeRepos.find(
-        (repo) => repo.name === selectedRepo
-    )
-
-    // 🔥 Auto-select first branch when repo changes
-    useEffect(() => {
-        if (selectedRepoData) {
-            setBranch(selectedRepoData.branch[0])
-        } else {
-            setBranch("")
-        }
-    }, [selectedRepo])
-
+    /* =========================
+       Render
+    ========================= */
     return (
-        <Card className="transition-all hover:shadow-md">
+        <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <FolderGit2 className="w-5 h-5" />
                     Repository
                 </CardTitle>
                 <CardDescription>
-                    Import a GitHub repository or select from your account.
+                    Import a GitHub repository or select from your account
                 </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6">
-                {/* ===================== */}
-                {/* Import From Git URL  */}
-                {/* ===================== */}
+                {/* Import URL */}
                 <div>
                     <Label className="flex items-center gap-2">
                         <Link className="w-4 h-4" />
                         Import from Git URL
                     </Label>
-
                     <div className="flex gap-2 mt-2">
                         <Input
                             placeholder="https://github.com/user/repo"
                             value={gitUrl}
                             onChange={(e) => setGitUrl(e.target.value)}
                         />
-                        <Button onClick={handleImportFromUrl} disabled={loading}>
-                            {loading ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <>
-                                    <Github className="w-4 h-4 mr-2" />
-                                    Import
-                                </>
-                            )}
+                        <Button onClick={handleImportFromUrl}>
+                            <Github className="w-4 h-4 mr-2" />
+                            Import
                         </Button>
                     </div>
-
-                    {error && (
-                        <div className="text-sm text-destructive mt-2">
-                            {error}
-                        </div>
-                    )}
                 </div>
 
-                {/* ===================== */}
-                {/* Repo List UI          */}
-                {/* ===================== */}
+                {/* Repo List */}
                 <div>
-                    <Label className="flex items-center gap-2">
-                        <Github className="w-4 h-4" />
-                        Your repositories
-                    </Label>
+                    <Label>Your repositories</Label>
+                    {loading && (
+                        <div className="flex gap-2 mt-2 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading repositories...
+                        </div>
+                    )}
 
-                    <div className="mt-3 space-y-2">
-                        {fakeRepos.map((repo) => {
-                            const isSelected =
-                                selectedRepo === repo.name
-
+                    <div className="mt-3 space-y-2 max-h-[300px] overflow-auto">
+                        {repositories.map((repo) => {
+                            const isSelected = selectedRepo === repo.full_name
                             return (
                                 <div
                                     key={repo.id}
-                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all
-                                    ${isSelected
-                                            ? "border-primary bg-primary/5"
-                                            : "hover:bg-muted/40"
+                                    className={`flex justify-between p-3 border rounded-lg ${isSelected && "border-primary bg-primary/5"
                                         }`}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-muted rounded-md">
-                                            <FolderGit2 className="w-4 h-4 text-muted-foreground" />
-                                        </div>
-
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-medium">
-                                                {repo.name}
-                                            </span>
-
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Badge
-                                                    variant="outline"
-                                                    className="text-[10px] flex items-center gap-1"
-                                                >
-                                                    {repo.private ? (
-                                                        <Lock className="w-3 h-3" />
-                                                    ) : (
-                                                        <Globe className="w-3 h-3" />
-                                                    )}
-                                                    {repo.private
-                                                        ? "Private"
-                                                        : "Public"}
-                                                </Badge>
-                                            </div>
-                                        </div>
+                                    <div>
+                                        <p className="text-xs font-medium">
+                                            {formatRepoName(repo.full_name)}
+                                        </p>
+                                        <Badge variant="outline" className="text-[10px] mt-1">
+                                            {repo.private ? <Lock /> : <Globe />}
+                                            {repo.private ? "Private" : "Public"}
+                                        </Badge>
                                     </div>
-
                                     <Button
                                         size="sm"
-                                        variant={
-                                            isSelected
-                                                ? "default"
-                                                : "outline"
-                                        }
-                                        onClick={() =>
-                                            setSelectedRepo(repo.name)
-                                        }
+                                        variant={isSelected ? "default" : "outline"}
+                                        onClick={() => setSelectedRepo(repo.full_name)}
                                     >
-                                        {isSelected ? (
-                                            <Check className="w-4 h-4" />
-                                        ) : (
-                                            "Import"
-                                        )}
+                                        {isSelected ? <Check /> : "Import"}
                                     </Button>
                                 </div>
                             )
@@ -265,66 +318,53 @@ export default function RepositorySection({
                     </div>
                 </div>
 
-                {/* ===================== */}
-                {/* Branch Selector       */}
-                {/* ===================== */}
-                {selectedRepoData && (
-                    <div>
+                {/* Branch */}
+                {selectedRepo && (
+                    <div className="flex gap-4">
                         <Label className="flex items-center gap-2">
                             <GitBranch className="w-4 h-4" />
                             Branch
                         </Label>
+                        {branchLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin mt-2" />
+                        ) : (
+                            <BranchSelect
 
-                        <SelectBranch
-                            branchList={selectedRepoData.branch}
-                            value={branch}
-                            onChange={setBranch}
-                        />
+                                branchList={branchList}
+                                value={branch}
+                                onChange={setBranch}
+                            />
+                        )}
                     </div>
                 )}
 
-                {/* ===================== */}
-                {/* Selected Preview      */}
-                {/* ===================== */}
-                <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 font-medium">
-                            <FolderGit2 className="w-4 h-4 text-muted-foreground" />
-                            {selectedRepo || "No repository selected"}
-                        </div>
-
-                        {selectedRepo && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={clearSelection}
-                            >
-                                <X className="w-4 h-4" />
-                            </Button>
-                        )}
+                {/* Preview */}
+                <div className="bg-muted/30 p-4 rounded-lg">
+                    <div className="flex justify-between">
+                        <span>{selectedRepo ?? "No repository selected"}</span>
                     </div>
 
-                    {selectedRepo && (
-                        <div className="flex flex-wrap gap-3 text-xs">
-                            <Badge
-                                variant="outline"
-                                className="flex items-center gap-1"
-                            >
-                                <GitBranch className="w-3 h-3" />
-                                {branch || "No branch selected"}
-                            </Badge>
+                    {commitsLoading && (
+                        <p className="text-xs mt-2">Loading commits…</p>
+                    )}
 
-                            <Badge
-                                variant="secondary"
-                                className="flex items-center gap-1"
-                            >
-                                <Server className="w-3 h-3" />
-                                {gitUrl ? "Git URL" : "GitHub"}
-                            </Badge>
+                    {commitsError && (
+                        <p className="text-xs text-destructive mt-2">
+                            Failed to load commits
+                        </p>
+                    )}
+
+                    {commits?.length > 0 && (
+                        <div className="flex gap-1">
+                            <p className="text-xs mt-2 font-mono leading-relaxed text-slate-800 dark:text-slate-200">
+
+                                <GitCommitIcon className="h-3 w-3" />
+                                latest commit: {commits[0].commit.message}
+                            </p>
                         </div>
                     )}
                 </div>
             </CardContent>
-        </Card>
+        </Card >
     )
 }

@@ -5,6 +5,7 @@ import AppBar from "./core/Appbar";
 import Profile from "./core/Profile";
 import Project from "./core/project/index";
 import { Login } from "./core/Login";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
     return (
@@ -16,7 +17,9 @@ function App() {
                 <Route path="/" element={<Login />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
+            <Toaster />
         </div>
+
     );
 }
 
