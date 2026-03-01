@@ -1,135 +1,120 @@
-"use client"
-
-import { useEffect, useState } from 'react'
-import { getSession, signIn, signOut, revokeSessions, getAccessToken } from './../lib/authClient'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { listRepos, type GitHubRepository } from '@/lib/github_type'
+import React, { useState } from 'react';
+import { Github, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion, AnimatePresence } from "framer-motion";
+import { signIn } from '@/lib/authClient'
 
 export function Login() {
-    const [userId, setUserId] = useState<string | null | undefined>(null)
-    const [userName, setUserName] = useState('')
-    const [accessToken, setAccessToken] = useState<string>('')
-    const [repos, setRepos] = useState<GitHubRepository[]>([])
-    const [loading, setLoading] = useState(false)
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Sign out function
-    const handleSignOut = async () => {
-        try {
-            await signOut()
-            await revokeSessions()
-            setUserId(null)
-            setUserName('')
-            setAccessToken('')
-            setRepos([])
-            toast.success("Logged out successfully")
-        } catch (err) {
-            console.error(err)
-            toast.error("Failed to log out")
-        }
-    }
 
-    // Sign in function
     const handleLogin = async () => {
-        const { data, error } = await signIn.social({ provider: 'github' })
-        if (!data || error) {
-            toast.error('Login failed')
-        }
-    }
-
-    // Get session info
-    async function fetchSession() {
-        const { data, error } = await getSession()
-        if (data) {
-            setUserId(data.user.id)
-            setUserName(data.user.name)
-        }
-        if (error) toast.error("You are not logged in")
-    }
-
-    // Get access token
-    async function fetchAccessToken() {
-        const { data, error } = await getAccessToken({ providerId: "github" })
-        if (!error && data) {
-            setAccessToken(data.accessToken)
-        } else if (error) {
-            toast.error(error.message)
-        }
-    }
-
-    // Fetch all repos when access token is ready
-    useEffect(() => {
-        if (!accessToken) return
-
-        const fetchRepos = async () => {
-            setLoading(true)
-            try {
-                const data = await listRepos(accessToken)
-                setRepos(data)
-            } catch (err) {
-                console.error(err)
-                toast.error("Failed to fetch repositories")
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchRepos()
-    }, [accessToken])
-
-    // Initialize session and token on mount
-    useEffect(() => {
-        fetchSession()
-        fetchAccessToken()
-    }, [])
+        setIsLoading(true);
+        await signIn.social({
+            provider: 'github'
+        })
+    };
 
     return (
-        <div className="p-4 max-w-6xl mx-auto">
-            {!userId ? (
-                <div className="text-center space-y-4">
-                    <p className="text-lg font-medium">Log in with GitHub to continue</p>
-                    <Button onClick={handleLogin}>Login</Button>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    <p className="text-lg font-medium">Logged in as <strong>{userName}</strong></p>
-                    <pre>{accessToken}</pre>
-                    <div className="flex gap-2">
-                        <Button onClick={handleSignOut}>Log Out</Button>
-                    </div>
+        <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 overflow-hidden p-4">
+            {/* Background Glows */}
+            <div className="absolute top-0 left-0 w-full h-full">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/10 blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px]" />
+            </div>
 
-                    <h2 className="text-xl font-semibold mt-4">Your GitHub Repositories</h2>
-                    {loading && <p>Loading repositories...</p>}
-                    {!loading && repos.length === 0 && <p>No repositories found.</p>}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="z-10 w-full max-w-md"
+            >
+                {/* --- MAIN CARD WITH BORDER ANIMATION --- */}
+                <div className="relative p-[1px] rounded-2xl overflow-hidden">
+                    {/* Background Rotating Border */}
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0_340deg,#3b82f6_360deg)]"
+                    />
 
-                    <ScrollArea className="h-[500px] mt-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {repos.map((repo) => (
-                                <Card key={repo.id} className="border">
-                                    <CardHeader>
-                                        <CardTitle>
-                                            <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
-                                                {repo.full_name}
-                                            </a>
-                                        </CardTitle>
-                                        <CardDescription>{repo.description || "No description"}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        <p>Language: {repo.language || "N/A"}</p>
-                                        <p>Stars: {repo.stargazers_count}</p>
-                                        <p>Forks: {repo.forks_count}</p>
-                                        <p>Open Issues: {repo.open_issues_count}</p>
-                                        <p>Visibility: {repo.visibility}</p>
-                                        <p>Default Branch: {repo.default_branch}</p>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </ScrollArea>
+                    <Card className="relative border-none bg-slate-900/90 backdrop-blur-2xl rounded-2xl z-10 shadow-2xl">
+                        <CardHeader className="space-y-1 text-center pt-8">
+                            <div className="flex justify-center mb-4">
+                                <motion.div
+                                    whileHover={{ rotate: 360 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="p-3 bg-slate-800 rounded-xl border border-slate-700"
+                                >
+                                    <Github className="w-8 h-8 text-white" />
+                                </motion.div>
+                            </div>
+                            <CardTitle className="text-2xl font-bold text-white tracking-tight">
+                                DevPortal Login
+                            </CardTitle>
+                            <CardDescription className="text-slate-400">
+                                Authenticate with your GitHub account
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="grid gap-6 pb-10">
+                            {/* --- DYNAMIC BUTTON --- */}
+                            <div className="relative group">
+                                {/* Button Border Animation (Only shows when isLoading is true) */}
+                                <AnimatePresence>
+                                    {isLoading && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="absolute inset-0 rounded-xl p-[2px] overflow-hidden"
+                                        >
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                                className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0_300deg,#60a5fa_360deg)]"
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                <button
+                                    onClick={handleLogin}
+                                    disabled={isLoading}
+                                    className={`
+                    relative w-full h-12 rounded-xl flex items-center justify-center gap-3 font-semibold transition-all duration-300 z-20
+                    ${isLoading
+                                            ? "bg-slate-900 text-blue-400"
+                                            : "bg-white text-slate-950 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                                        }
+                  `}
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Redirecting to Flow
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Github className="w-5 h-5" />
+                                            Continue with GitHub
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <div className="h-[1px] w-full bg-slate-800" />
+                                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                                    Protected by OAuth 2.0
+                                </span>
+                                <div className="h-[1px] w-full bg-slate-800" />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
-            )}
+            </motion.div>
         </div>
-    )
-}
+    );
+};
+

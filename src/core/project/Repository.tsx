@@ -22,6 +22,7 @@ import {
     Globe,
     Lock,
     GitCommitIcon,
+    SettingsIcon,
 } from "lucide-react"
 import {
     Select,
@@ -111,6 +112,14 @@ function BranchSelect({
 /* =========================
    Main Component
 ========================= */
+
+
+
+
+
+
+
+
 export default function RepositorySection({
     gitUrl,
     setGitUrl,
@@ -128,7 +137,6 @@ export default function RepositorySection({
     const [error, setError] = useState<string | null>(null)
 
     console.log(error);
-
 
     /* =========================
        Auth token
@@ -242,6 +250,43 @@ export default function RepositorySection({
         }
         setSelectedRepo(repoName)
     }
+
+    function handleWorkflowButton() {
+        if (!owner || !repo || !branch) {
+            toast.error("Select a repository and branch first")
+            return
+        }
+
+        const workflow = `
+name: Build
+
+on:
+  push:
+    branches: [${branch}]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+`.trim()
+
+        const url =
+            `https://github.com/${owner}/${repo}/new/${branch}` +
+            `?filename=.github/workflows/build.yml` +
+            `&value=${encodeURIComponent(workflow)}`
+
+        // mark state so page can poll when user comes back
+        localStorage.setItem("awaiting_workflow_commit", "true")
+
+        window.location.href = url
+    }
+
+
     /* =========================
        Render
     ========================= */
@@ -363,6 +408,13 @@ export default function RepositorySection({
                             </p>
                         </div>
                     )}
+                </div>
+
+                <div className="bg-muted/30 p-4 mt-2 rounded-lg flex border border-orange-500 gap-4 justify-between items-center">
+                    <p className="text-xs">
+                        Configure Workflow For build,deployment and automation*
+                    </p>
+                    <Button variant='outline' onClick={handleWorkflowButton}><SettingsIcon size='icon' />Configure</Button>
                 </div>
             </CardContent>
         </Card >

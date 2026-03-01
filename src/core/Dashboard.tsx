@@ -220,7 +220,7 @@ export default function Dashboard() {
                     {/* Create Button */}
                     <Dialog open={open} onOpenChange={handleOpenChange}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button className="rounded-full">
                                 <PlusIcon className="h-4 w-4 mr-2" /> New Project
                             </Button>
                         </DialogTrigger>
