@@ -6,6 +6,11 @@ import Profile from "./core/Profile";
 import Project from "./core/project/index";
 import { Login } from "./core/Login";
 import { Toaster } from "./components/ui/sonner";
+import ConfigSection from "./core/project/Config";
+import { Workflow } from "./core/project/Workflow";
+
+
+
 
 function App() {
     return (
@@ -15,6 +20,8 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/project" element={<><AppBar /><Project /></>} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/configure" element={< ConfigSection />} />
+                <Route path="/workflow" element={<Workflow />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />

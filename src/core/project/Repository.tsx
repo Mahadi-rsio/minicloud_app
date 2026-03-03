@@ -22,7 +22,6 @@ import {
     Globe,
     Lock,
     GitCommitIcon,
-    SettingsIcon,
 } from "lucide-react"
 import {
     Select,
@@ -250,173 +249,141 @@ export default function RepositorySection({
         }
         setSelectedRepo(repoName)
     }
-
-    function handleWorkflowButton() {
-        if (!owner || !repo || !branch) {
-            toast.error("Select a repository and branch first")
-            return
-        }
-
-        const workflow = `
-name: Build
-
-on:
-  push:
-    branches: [${branch}]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: npm install
-      - name: Build
-        run: npm run build
-`.trim()
-
-        const url =
-            `https://github.com/${owner}/${repo}/new/${branch}` +
-            `?filename=.github/workflows/build.yml` +
-            `&value=${encodeURIComponent(workflow)}`
-
-        // mark state so page can poll when user comes back
-        localStorage.setItem("awaiting_workflow_commit", "true")
-
-        window.location.href = url
-    }
-
-
     /* =========================
        Render
     ========================= */
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <FolderGit2 className="w-5 h-5" />
-                    Repository
-                </CardTitle>
-                <CardDescription>
-                    Import a GitHub repository or select from your account
-                </CardDescription>
-            </CardHeader>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <FolderGit2 className="w-5 h-5" />
+                        Connect you git repo
+                    </CardTitle>
+                    <CardDescription>
+                        Import a GitHub repository or select from your account
+                    </CardDescription>
+                </CardHeader>
 
-            <CardContent className="space-y-6">
-                {/* Import URL */}
-                <div>
-                    <Label className="flex items-center gap-2">
-                        <Link className="w-4 h-4" />
-                        Import from Git URL
-                    </Label>
-                    <div className="flex gap-2 mt-2">
-                        <Input
-                            placeholder="https://github.com/user/repo"
-                            value={gitUrl}
-                            onChange={(e) => setGitUrl(e.target.value)}
-                        />
-                        <Button onClick={handleImportFromUrl}>
-                            <Github className="w-4 h-4 mr-2" />
-                            Import
-                        </Button>
+                <CardContent className="space-y-6">
+                    {/* Import URL */}
+                    <div>
+                        <Label className="flex items-center gap-2">
+                            <Link className="w-4 h-4" />
+                            Import from Git URL
+                        </Label>
+                        <div className="flex gap-2 mt-2">
+                            <Input
+                                placeholder="https://github.com/user/repo"
+                                value={gitUrl}
+                                onChange={(e) => setGitUrl(e.target.value)}
+                            />
+                            <Button onClick={handleImportFromUrl}>
+                                <Github className="w-4 h-4 mr-2" />
+                                Import
+                            </Button>
+                        </div>
                     </div>
-                </div>
 
-                {/* Repo List */}
-                <div>
-                    <Label>Your repositories</Label>
-                    {loading && (
-                        <div className="flex gap-2 mt-2 text-sm">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Loading repositories...
+                    {/* Repo List */}
+                    <div>
+                        <Label>Your repositories</Label>
+                        {loading && (
+                            <div className="flex gap-2 mt-2 text-sm">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Loading repositories...
+                            </div>
+                        )}
+
+                        <div className="mt-3 space-y-2 max-h-[300px] overflow-auto">
+                            {repositories.map((repo) => {
+                                const isSelected = selectedRepo === repo.full_name
+                                return (
+                                    <div
+                                        key={repo.id}
+                                        className={`flex justify-between p-3 border rounded-lg ${isSelected && "border-primary bg-primary/5"
+                                            }`}
+                                    >
+                                        <div>
+                                            <p className="text-xs font-medium">
+                                                {formatRepoName(repo.full_name)}
+                                            </p>
+                                            <Badge variant="outline" className="text-[10px] mt-1">
+                                                {repo.private ? <Lock /> : <Globe />}
+                                                {repo.private ? "Private" : "Public"}
+                                            </Badge>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant={isSelected ? "default" : "outline"}
+                                            onClick={() => setSelectedRepo(repo.full_name)}
+                                        >
+                                            {isSelected ? <Check /> : "Import"}
+                                        </Button>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Branch */}
+                    {selectedRepo && (
+                        <div className="flex gap-4">
+                            <Label className="flex items-center gap-2">
+                                <GitBranch className="w-4 h-4" />
+                                Branch
+                            </Label>
+                            {branchLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin mt-2" />
+                            ) : (
+                                <BranchSelect
+
+                                    branchList={branchList}
+                                    value={branch}
+                                    onChange={setBranch}
+                                />
+                            )}
                         </div>
                     )}
 
-                    <div className="mt-3 space-y-2 max-h-[300px] overflow-auto">
-                        {repositories.map((repo) => {
-                            const isSelected = selectedRepo === repo.full_name
-                            return (
-                                <div
-                                    key={repo.id}
-                                    className={`flex justify-between p-3 border rounded-lg ${isSelected && "border-primary bg-primary/5"
-                                        }`}
-                                >
-                                    <div>
-                                        <p className="text-xs font-medium">
-                                            {formatRepoName(repo.full_name)}
-                                        </p>
-                                        <Badge variant="outline" className="text-[10px] mt-1">
-                                            {repo.private ? <Lock /> : <Globe />}
-                                            {repo.private ? "Private" : "Public"}
-                                        </Badge>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant={isSelected ? "default" : "outline"}
-                                        onClick={() => setSelectedRepo(repo.full_name)}
-                                    >
-                                        {isSelected ? <Check /> : "Import"}
-                                    </Button>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
+                    {/* Preview */}
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                        <div className="flex justify-between">
+                            <span>{selectedRepo ?? "No repository selected"}</span>
+                        </div>
 
-                {/* Branch */}
-                {selectedRepo && (
-                    <div className="flex gap-4">
-                        <Label className="flex items-center gap-2">
-                            <GitBranch className="w-4 h-4" />
-                            Branch
-                        </Label>
-                        {branchLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin mt-2" />
-                        ) : (
-                            <BranchSelect
+                        {commitsLoading && (
+                            <p className="text-xs mt-2">Loading commits…</p>
+                        )}
 
-                                branchList={branchList}
-                                value={branch}
-                                onChange={setBranch}
-                            />
+                        {commitsError && (
+                            <p className="text-xs text-destructive mt-2">
+                                Failed to load commits
+                            </p>
+                        )}
+
+                        {commits?.length > 0 && (
+                            <div className="flex gap-1">
+                                <p className="text-xs mt-2 font-mono leading-relaxed text-slate-800 dark:text-slate-200">
+
+                                    <GitCommitIcon className="h-3 w-3" />
+                                    latest commit: {commits[0].commit.message}
+                                </p>
+                            </div>
                         )}
                     </div>
-                )}
 
-                {/* Preview */}
-                <div className="bg-muted/30 p-4 rounded-lg">
-                    <div className="flex justify-between">
-                        <span>{selectedRepo ?? "No repository selected"}</span>
-                    </div>
-
-                    {commitsLoading && (
-                        <p className="text-xs mt-2">Loading commits…</p>
-                    )}
-
-                    {commitsError && (
-                        <p className="text-xs text-destructive mt-2">
-                            Failed to load commits
-                        </p>
-                    )}
-
-                    {commits?.length > 0 && (
-                        <div className="flex gap-1">
-                            <p className="text-xs mt-2 font-mono leading-relaxed text-slate-800 dark:text-slate-200">
-
-                                <GitCommitIcon className="h-3 w-3" />
-                                latest commit: {commits[0].commit.message}
-                            </p>
-                        </div>
-                    )}
-                </div>
-
-                <div className="bg-muted/30 p-4 mt-2 rounded-lg flex border border-orange-500 gap-4 justify-between items-center">
-                    <p className="text-xs">
-                        Configure Workflow For build,deployment and automation*
-                    </p>
-                    <Button variant='outline' onClick={handleWorkflowButton}><SettingsIcon size='icon' />Configure</Button>
-                </div>
-            </CardContent>
-        </Card >
+                </CardContent>
+            </Card >
+            <div className="flex justify-end mt-4">
+                <Button variant="default"
+                    onClick={() => {
+                        navigate(`/configure?branch=${branch}&owner=${owner}&repo=${repo}`)
+                    }}
+                >Next</Button>
+            </div>
+        </>
     )
 }
+
+
