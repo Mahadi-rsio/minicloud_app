@@ -275,7 +275,7 @@ export default function RepositorySection({
                         <div className="flex gap-2 mt-2">
                             <Input
                                 placeholder="https://github.com/user/repo"
-                                value={gitUrl}
+                                value={accessToken}
                                 onChange={(e) => setGitUrl(e.target.value)}
                             />
                             <Button onClick={handleImportFromUrl}>

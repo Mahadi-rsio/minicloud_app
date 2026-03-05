@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Github, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,11 +8,15 @@ export function Login() {
     const [isLoading, setIsLoading] = useState(false);
 
 
+
+
     const handleLogin = async () => {
         setIsLoading(true);
         await signIn.social({
             provider: 'github'
         })
+        setIsLoading(false)
+
     };
 
     return (
