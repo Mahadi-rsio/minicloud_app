@@ -14,18 +14,11 @@ export default function CreateAndDeploy() {
     const [selectedService, setSelectedService] = useState<ServiceType>("not_selected")
     const [selectedRepo, setSelectedRepo] = useState<string | undefined>()
     const [gitUrl, setGitUrl] = useState("")
-    const [appName, setAppName] = useState("")
     const [envVars, setEnvVars] = useState([{ key: "", value: "" }])
     const [instances, setInstances] = useState(1)
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
     const location = useLocation()
     const state = location.state as Project
-
-    const [region, setRegion] = useState("asia-south1")
-    const [runtime, setRuntime] = useState("nodejs")
-    const [buildCommand, setBuildCommand] = useState("")
-    const [startCommand, setStartCommand] = useState("")
-    const [outputDir, setOutputDir] = useState("")
 
     return (
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 space-y-6">
@@ -93,18 +86,6 @@ export default function CreateAndDeploy() {
                     />
 
                     <ConfigSection
-                        appName={state.name}
-                        setAppName={setAppName}
-                        region={region}
-                        setRegion={setRegion}
-                        runtime={runtime}
-                        setRuntime={setRuntime}
-                        buildCommand={buildCommand}
-                        setBuildCommand={setBuildCommand}
-                        startCommand={startCommand}
-                        setStartCommand={setStartCommand}
-                        outputDir={outputDir}
-                        setOutputDir={setOutputDir}
                     />
 
 
@@ -124,7 +105,7 @@ export default function CreateAndDeploy() {
                     <DeployActions
                         selectedService={selectedService}
                         selectedRepo={selectedRepo}
-                        appName={appName}
+                        appName=""
                         selectedPlan={selectedPlan}
                     />
                 </>

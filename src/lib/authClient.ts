@@ -1,4 +1,5 @@
 import { createAuthClient } from 'better-auth/react'
+import { deviceAuthorizationClient } from 'better-auth/client/plugins'
 
 export const {
     getSession,
@@ -6,7 +7,14 @@ export const {
     signUp,
     signOut,
     revokeSessions,
-    getAccessToken
+    getAccessToken,
+    device
 } = createAuthClient({
-    baseURL: "http://localhost:3000/"
+    baseURL: "http://localhost:3000/",
+    plugins: [
+        deviceAuthorizationClient()
+    ],
+    fetchOptions: {
+        credentials: "include"
+    }
 })

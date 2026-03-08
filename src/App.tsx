@@ -8,6 +8,8 @@ import { Login } from "./core/Login";
 import { Toaster } from "./components/ui/sonner";
 import ConfigSection from "./core/project/Config";
 import { Workflow } from "./core/project/Workflow";
+import DeviceAuthorizationPage from "./core/cli/DeviceAuth";
+import DeviceApprovalPage from "./core/cli/ApprovePage";
 
 
 
@@ -22,6 +24,9 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/configure" element={< ConfigSection />} />
                 <Route path="/workflow" element={<Workflow />} />
+                <Route path="/device" element={<DeviceAuthorizationPage />} />
+                <Route path="/device/approve" element={<DeviceApprovalPage />} />
+
                 <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
